@@ -21,7 +21,7 @@ class NewVisitorTest(unittest.TestCase):
         self.assertIn('To-Do', header_text)
 
         # He is invited to enter a to-do item straight away
-        inputbox = self.broser.find_element_by_id('id_new_item')
+        inputbox = self.browser.find_element_by_id('id_new_item')
         self.assertEqual(
             inputbox.get_attribute('placeholder'),
             'Enter a to-do item'
@@ -37,7 +37,8 @@ class NewVisitorTest(unittest.TestCase):
         table = self.browser.find_element_by_id('id_list_table')
         rows = table.find_elements_by_tag_name('tr')
         self.assertTrue(
-            any(row.text == '1: Buy tennis balls' for row in rows)
+            any(row.text == '1: Buy tennis balls' for row in rows),
+            'New to-do item did not appear in table'
         )
 
         # Another text box requests another to-do item. He enters "Player tennis".
