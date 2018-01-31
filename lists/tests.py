@@ -20,7 +20,11 @@ class ItemModelTest(TestCase):
         self.assertEqual(first_saved_item.text, 'The first list item')
         self.assertEqual(second_saved_item.text, 'Item the second')
 
-class SmokeTest(TestCase):
+class HomePageTest(TestCase):
+    
+    def test_only_saves_items_when_necessary(self):
+        self.client.get('/')
+        self.assertEqual(0, Item.objects.count())
 
     def test_home_page_returns_correct_html(self):
         response = self.client.get('/')
@@ -28,5 +32,22 @@ class SmokeTest(TestCase):
 
     def test_can_save_a_POST_request(self):
         response = self.client.post('/', data={'item_text': 'A new list item'})
-        self.assertIn('A new list item', response.content.decode())
-        self.assertTemplateUsed(response, 'home.html')
+
+        # check item has been saved to DB 
+        self.assertEqual(1, Item.objects.count())
+        new_item = Item.objects.first()
+        self.assertEqual('A new list item', new_item.text)
+
+    def test_redirects_after_POST(self):
+        response = self.client.post('/', data={'item_text': 'A new list item'})
+        self.assertEqual(302, response.status_code)
+        self.assertEqual('/', response['location'])
+
+    def test_displays_all_list_items(self):
+        Item.objects.create(text='first')
+        Item.objects.create(text='second')
+
+        response = self.client.get('/')
+
+        self.assertIn('first', response.content.decode())
+        self.assertIn('second', response.content.decode())
