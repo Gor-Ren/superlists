@@ -3,10 +3,11 @@ from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.keys import Keys
 import time
+import unittest
 
 class NewVisitorTest(LiveServerTestCase):
 
-    MAX_WAIT = 10 # max time in seconds test will wait for browser to update before throwing exception
+    MAX_WAIT = 3 # max time in seconds test will wait for browser to update before throwing exception
     
     def setUp(self):
         self.browser = webdriver.Firefox()
@@ -24,11 +25,11 @@ class NewVisitorTest(LiveServerTestCase):
                 self.assertIn(row_text, [row.text for row in rows])
                 return
             except (AssertionError, WebDriverException) as e:
-                if time.time() - start_time > MAX_WAIT:
+                if time.time() - start_time > self.MAX_WAIT:
                     raise e
                 time.sleep(0.1) # wait before next attempt
 
-    def test_can_start_a_list_and_retrieve_it_later(self):
+    def test_can_start_a_list_for_one_user(self):
         # Timmy the user checks out the app's homepage.
         self.browser.get(self.live_server_url)
 
@@ -62,11 +63,41 @@ class NewVisitorTest(LiveServerTestCase):
         self.wait_for_row_in_list_table('1: Buy tennis balls')        
         self.wait_for_row_in_list_table('2: Play tennis')        
 
-        # Timmy wonders whether the site will remember his list. Then he sees that the site has generated a unique URL for him
-        # -- there is some explanatory text to that effect
-        self.fail('Finish the test!')
+    def test_multiple_users_can_start_lists_at_different_urls(self):
+        # User A starts a new to-do list
+        self.browser.get(self.live_server_url)
+        inputbox = self.browser.find_element_by_id('id_new_item')
+        inputbox.send_keys('Do arbitrary thing')
+        inputbox.send_keys(Keys.ENTER)
+        self.wait_for_row_in_list_table('1: Do arbitrary thing')        
 
-        # He visits the URL - his to-do list is still there
+        # User A notices their list has a unique URL
+        user_A_list_url = self.browser.current_url
+        self.assertRegex(user_A_list_url, '/lists/.+')
 
-        # Satisfied, he closes his browser
+        # A new user, User B, comes to the site
 
+        ## Create new browser session to make sure no previous information coming from cookies etc.
+        self.browser.quit()
+        self.browser = webdriver.Firefox()
+
+        # User B visits the home page. There is no sign of User A's list.
+        self.browser.get(self.live_server_url)
+        page_text = self.browser.find_element_by_tag_name('body').text
+        self.assertNotIn('Do arbitrary thing', page_text)
+
+        # User B starts their list by entering a new item
+        inputbox = self.browser.find_element_by_id('id_new_item')
+        inputbox.send_keys('Buy milk')
+        inputbox.send_keys(Keys.ENTER)
+        self.wait_for_row_in_list_table('1: Buy milk')
+
+        # User B gets their own unique URL
+        user_B_list_url = self.browser.current_url
+        self.assertRegex(user_B_list_url, '/lists/.+')
+        self.assertNotEqual(user_A_list_url, user_B_list_url)
+
+        # There continues to be no trace of user A's list
+        page.text = self.browser.find_element_by_tag_name('body').text
+        self.assertNotIn('Do arbitrary thing', page_text)
+        self.assertIn('Buy milk', page_text)
