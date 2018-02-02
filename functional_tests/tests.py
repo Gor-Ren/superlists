@@ -3,12 +3,14 @@ from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.keys import Keys
 import time
-import unittest
+
 
 class NewVisitorTest(LiveServerTestCase):
 
-    MAX_WAIT = 3 # max time in seconds test will wait for browser to update before throwing exception
-    
+    # max time in seconds test will wait for browser to update before throwing
+    # exception
+    MAX_WAIT = 3
+
     def setUp(self):
         self.browser = webdriver.Firefox()
 
@@ -27,7 +29,7 @@ class NewVisitorTest(LiveServerTestCase):
             except (AssertionError, WebDriverException) as e:
                 if time.time() - start_time > self.MAX_WAIT:
                     raise e
-                time.sleep(0.1) # wait before next attempt
+                time.sleep(0.1)  # wait before next attempt
 
     def test_can_start_a_list_for_one_user(self):
         # Timmy the user checks out the app's homepage.
@@ -48,20 +50,21 @@ class NewVisitorTest(LiveServerTestCase):
         # He types "Buy tennis balls" into a text box
         inputbox.send_keys('Buy tennis balls')
 
-        # When he hits enter, the page updates and the page lists "1: Buy tennis balls" as an item on the to-do list.
+        # When he hits enter, the page updates and the page lists "1: Buy
+        # tennis balls" as an item on the to-do list.
         inputbox.send_keys(Keys.ENTER)
-        time.sleep(1) # let page refresh on ENTER
-        self.wait_for_row_in_list_table('1: Buy tennis balls')        
+        time.sleep(1)  # let page refresh on ENTER
+        self.wait_for_row_in_list_table('1: Buy tennis balls')
 
-        # Another text box requests another to-do item. He enters "Play tennis".
+        # Another text box requests another to-do item. He enters "Play tennis"
         inputbox = self.browser.find_element_by_id('id_new_item')
         inputbox.send_keys('Play tennis')
         inputbox.send_keys(Keys.ENTER)
         time.sleep(1)
 
         # The page updates again, and shows both items on list
-        self.wait_for_row_in_list_table('1: Buy tennis balls')        
-        self.wait_for_row_in_list_table('2: Play tennis')        
+        self.wait_for_row_in_list_table('1: Buy tennis balls')
+        self.wait_for_row_in_list_table('2: Play tennis')
 
     def test_multiple_users_can_start_lists_at_different_urls(self):
         # User A starts a new to-do list
@@ -69,7 +72,7 @@ class NewVisitorTest(LiveServerTestCase):
         inputbox = self.browser.find_element_by_id('id_new_item')
         inputbox.send_keys('Do arbitrary thing')
         inputbox.send_keys(Keys.ENTER)
-        self.wait_for_row_in_list_table('1: Do arbitrary thing')        
+        self.wait_for_row_in_list_table('1: Do arbitrary thing')
 
         # User A notices their list has a unique URL
         user_A_list_url = self.browser.current_url
@@ -77,7 +80,8 @@ class NewVisitorTest(LiveServerTestCase):
 
         # A new user, User B, comes to the site
 
-        ## Create new browser session to make sure no previous information coming from cookies etc.
+        # (Create new browser session to make sure no previous information
+        # coming from cookies etc.)
         self.browser.quit()
         self.browser = webdriver.Firefox()
 
@@ -98,6 +102,6 @@ class NewVisitorTest(LiveServerTestCase):
         self.assertNotEqual(user_A_list_url, user_B_list_url)
 
         # There continues to be no trace of user A's list
-        page.text = self.browser.find_element_by_tag_name('body').text
+        page_text = self.browser.find_element_by_tag_name('body').text
         self.assertNotIn('Do arbitrary thing', page_text)
-        self.assertIn('Buy milk', page_text)
+        self.assertIn('1: Buy milk', page_text)
